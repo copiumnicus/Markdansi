@@ -212,40 +212,31 @@ function mergeAdjacentCodeBlocks(nodes: Root["children"]): Root["children"] {
     }
   };
 
+  const holdCode = (code: Code) => {
+    if (pending && (pending.lang === code.lang || (!pending.lang && !code.lang))) {
+      pending = {
+        type: "code",
+        lang: pending.lang,
+        meta: pending.meta,
+        value: `${pending.value}\n${code.value}`,
+        position: pending.position,
+      };
+    } else {
+      flush();
+      pending = code;
+    }
+  };
+
   for (const node of nodes) {
     if (node?.type === "code") {
-      if (pending && (pending.lang === node.lang || (!pending.lang && !node.lang))) {
-        const nextValue: string = `${pending.value}\n${node.value}`;
-        pending = {
-          type: "code",
-          lang: pending.lang,
-          meta: pending.meta,
-          value: nextValue,
-          position: pending.position,
-        };
-      } else {
-        flush();
-        pending = node as Code;
-      }
+      holdCode(node as Code);
       continue;
     }
 
     if (node?.type === "list") {
       const flattened = flattenCodeList(node);
       if (flattened) {
-        if (pending && (pending.lang === flattened.lang || (!pending.lang && !flattened.lang))) {
-          const nextValue: string = `${pending.value}\n${flattened.value}`;
-          pending = {
-            type: "code",
-            lang: pending.lang,
-            meta: pending.meta,
-            value: nextValue,
-            position: pending.position,
-          };
-        } else {
-          flush();
-          pending = flattened;
-        }
+        holdCode(flattened);
         continue;
       }
     }

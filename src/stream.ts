@@ -63,11 +63,6 @@ function isFenceEnd(line: string, fence: FenceState): boolean {
   return trimmed.startsWith(token);
 }
 
-function looksLikeTableHeader(line: string): boolean {
-  if (!line.includes("|")) return false;
-  return /[^\s|]/.test(line);
-}
-
 function isTableSeparator(line: string): boolean {
   // Examples:
   // | --- | --- |
@@ -101,12 +96,12 @@ export function createMarkdownStreamer(options: MarkdownStreamerOptions): Markdo
   let blankStreak = 0;
   let started = false;
 
-  let heldTableHeader: string | null = null;
-  let inTable = false;
-  let tableBuffer = "";
+  type Held =
+    | { kind: "header"; text: string }
+    | { kind: "table"; text: string }
+    | { kind: "fence"; text: string; fence: FenceState };
 
-  let fence: FenceState | null = null;
-  let fenceBuffer = "";
+  let held: Held | null = null;
 
   const emitBlankLine = () => {
     if (!started) return "";
@@ -123,84 +118,65 @@ export function createMarkdownStreamer(options: MarkdownStreamerOptions): Markdo
     return normalizeRenderedFragment(render(markdown));
   };
 
-  const flushHeldHeader = () => {
-    if (!heldTableHeader) return "";
-    const md = heldTableHeader;
-    heldTableHeader = null;
-    return emitRendered(md);
-  };
-
-  const flushTable = () => {
-    if (!inTable) return "";
-    inTable = false;
-    const md = tableBuffer;
-    tableBuffer = "";
-    return emitRendered(md);
-  };
-
-  const flushFence = () => {
-    if (!fence) return "";
-    fence = null;
-    const md = fenceBuffer;
-    fenceBuffer = "";
+  const flushHeld = (): string => {
+    if (!held) return "";
+    const md = held.text;
+    held = null;
     return emitRendered(md);
   };
 
   const processLine = (line: string): string => {
     // Fence mode: buffer everything until the closing fence.
-    if (fence) {
-      fenceBuffer += `${line}\n`;
-      if (isFenceEnd(line, fence)) {
-        return flushFence();
+    if (held?.kind === "fence") {
+      held.text += `${line}\n`;
+      if (isFenceEnd(line, held.fence)) {
+        return flushHeld();
       }
       return "";
     }
 
     // Table mode: buffer table rows; flush when it ends.
-    if (inTable) {
+    if (held?.kind === "table") {
       if (line.trim().length === 0) {
-        return flushTable() + emitBlankLine();
+        return flushHeld() + emitBlankLine();
       }
       if (!looksLikeTableRow(line)) {
-        return flushTable() + processLine(line);
+        return flushHeld() + processLine(line);
       }
-      tableBuffer += `${line}\n`;
+      held.text += `${line}\n`;
       return "";
     }
 
     // Blank line: flush any held header and emit spacing.
     if (line.trim().length === 0) {
-      return flushHeldHeader() + emitBlankLine();
+      return flushHeld() + emitBlankLine();
     }
 
     // Fence start: flush held header and enter fence mode.
     const fenceStart = isFenceStart(line);
     if (fenceStart) {
-      const out = flushHeldHeader();
-      fence = fenceStart;
-      fenceBuffer = `${line}\n`;
+      const out = flushHeld();
+      held = { kind: "fence", text: `${line}\n`, fence: fenceStart };
       // Some fences are single-line in streams (rare). Handle close immediately.
       if (isFenceEnd(line, fenceStart) && line.trimStart().match(/^(```+|~~~+)\s*$/)) {
-        return out + flushFence();
+        return out + flushHeld();
       }
       return out;
     }
 
     // If we held a possible table header, check if this line starts a table.
-    if (heldTableHeader) {
-      if (isTableSeparator(line) && looksLikeTableHeader(heldTableHeader)) {
-        inTable = true;
-        tableBuffer = `${heldTableHeader}\n${line}\n`;
-        heldTableHeader = null;
+    if (held?.kind === "header") {
+      if (isTableSeparator(line) && looksLikeTableRow(held.text)) {
+        held = { kind: "table", text: `${held.text}\n${line}\n` };
         return "";
       }
-      const out = flushHeldHeader();
+      const out = flushHeld();
       return out + processLine(line);
     }
 
     // Potential table header: delay emission until we see the next line.
-    if (looksLikeTableHeader(line)) {
-      heldTableHeader = line;
+    if (looksLikeTableRow(line)) {
+      held = { kind: "header", text: line };
       return "";
     }
 
@@ -231,9 +207,7 @@ export function createMarkdownStreamer(options: MarkdownStreamerOptions): Markdo
       buffer = "";
     }
 
-    out += flushHeldHeader();
-    out += flushFence();
-    out += flushTable();
+    out += flushHeld();
 
     return out;
   };
@@ -242,11 +216,7 @@ export function createMarkdownStreamer(options: MarkdownStreamerOptions): Markdo
     buffer = "";
     blankStreak = 0;
     started = false;
-    heldTableHeader = null;
-    inTable = false;
-    tableBuffer = "";
-    fence = null;
-    fenceBuffer = "";
+    held = null;
   };
 
   return { push, finish, reset };

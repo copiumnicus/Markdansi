@@ -2,17 +2,27 @@ import type { ChalkInstance } from "chalk";
 import { Chalk } from "chalk";
 import type { ColorName, StyleIntent, Theme, ThemeName } from "./types.js";
 
+const yellowBold: StyleIntent = { color: "yellow", bold: true };
+const magentaBold: StyleIntent = { color: "magenta", bold: true };
+const blueUnderline: StyleIntent = { color: "blue", underline: true };
+const whiteDim: StyleIntent = { color: "white", dim: true };
+const cyan: StyleIntent = { color: "cyan" };
+const green: StyleIntent = { color: "green" };
+const boldOnly: StyleIntent = { bold: true };
+const italicOnly: StyleIntent = { italic: true };
+const dimOnly: StyleIntent = { dim: true };
+
 const base: Theme = {
-  heading: { color: "yellow", bold: true },
-  strong: { bold: true },
-  emph: { italic: true },
-  inlineCode: { color: "cyan" },
-  blockCode: { color: "green" },
-  link: { color: "blue", underline: true },
-  quote: { dim: true },
-  hr: { dim: true },
-  listMarker: { color: "cyan" },
-  tableHeader: { bold: true, color: "yellow" },
+  heading: yellowBold,
+  strong: boldOnly,
+  emph: italicOnly,
+  inlineCode: cyan,
+  blockCode: green,
+  link: blueUnderline,
+  quote: dimOnly,
+  hr: dimOnly,
+  listMarker: cyan,
+  tableHeader: yellowBold,
   tableCell: {},
 };
 
@@ -24,49 +34,49 @@ const dim: Theme = {
 
 const bright: Theme = {
   ...base,
-  heading: { color: "magenta", bold: true },
+  heading: magentaBold,
   link: { color: "cyan", underline: true },
-  inlineCode: { color: "green" },
-  blockCode: { color: "green" },
+  inlineCode: green,
+  blockCode: green,
 };
 
 const solarized: Theme = {
-  heading: { color: "yellow", bold: true },
-  strong: { bold: true },
-  emph: { italic: true },
-  inlineCode: { color: "cyan" },
+  heading: yellowBold,
+  strong: boldOnly,
+  emph: italicOnly,
+  inlineCode: cyan,
   blockCode: { color: "#2aa198" },
-  link: { color: "blue", underline: true },
-  quote: { color: "white", dim: true },
-  hr: { color: "white", dim: true },
-  listMarker: { color: "cyan" },
-  tableHeader: { color: "yellow", bold: true },
+  link: blueUnderline,
+  quote: whiteDim,
+  hr: whiteDim,
+  listMarker: cyan,
+  tableHeader: yellowBold,
 };
 
 const monochrome: Theme = {
-  heading: { bold: true },
-  strong: { bold: true },
-  emph: { italic: true },
-  inlineCode: { dim: true },
-  blockCode: { dim: true },
+  heading: boldOnly,
+  strong: boldOnly,
+  emph: italicOnly,
+  inlineCode: dimOnly,
+  blockCode: dimOnly,
   link: { underline: true },
-  quote: { dim: true },
-  hr: { dim: true },
-  listMarker: { dim: true },
-  tableHeader: { bold: true },
+  quote: dimOnly,
+  hr: dimOnly,
+  listMarker: dimOnly,
+  tableHeader: boldOnly,
 };
 
 const contrast: Theme = {
-  heading: { color: "magenta", bold: true },
+  heading: magentaBold,
   strong: { color: "white", bold: true },
   emph: { color: "white", italic: true },
   inlineCode: { color: "cyan", bold: true },
   blockCode: { color: "green", bold: true },
-  link: { color: "blue", underline: true },
-  quote: { color: "white", dim: true },
-  hr: { color: "white", dim: true },
-  listMarker: { color: "yellow", bold: true },
-  tableHeader: { color: "yellow", bold: true },
+  link: blueUnderline,
+  quote: whiteDim,
+  hr: whiteDim,
+  listMarker: yellowBold,
+  tableHeader: yellowBold,
   tableCell: { color: "white" },
 };
 
